@@ -103,56 +103,6 @@ def natural_keys(text):
     15. Use selenium to upload these zip folders to AnkiApp website (https://web.ankiapp.com/#/import)
 '''
 
-# In[1]:
-input_path = '/Users/nicholasbrady/Documents/Post-Doc/Dutch/Books/'
-book_ = 'Harry Potter en de Vuurbeker by Rowling, Joanne Kathleen.epub'
-
-chapters = epub2thtml(os.path.join(input_path, book_) )
-
-# In[3]:
-# open epub file
-input_path = '/Users/nicholasbrady/Documents/Post-Doc/Dutch/Books/'
-book_ = 'Harry Potter en de Vuurbeker by Rowling, Joanne Kathleen.epub'
-
-chapters = epub2thtml(os.path.join(input_path, book_) )
-
-Vocabulary_dir = '/Users/nicholasbrady/Documents/Post-Doc/Dutch/Books/Vocabulary/'
-
-# get the text of each chapter and filter for new unique words
-# new unique words are output to .txt file
-ch_number = 0
-unique_words = []
-for chapter in chapters:
-    len_list_old = len(unique_words)
-    chapter_text = chap2text(chapter)
-
-    # remove punctuation
-    chapter_text = re.sub(r'[^\w\s]', '', chapter_text)
-    words = chapter_text.split()
-
-    # don't include table of contents, front / back material
-    # filter just to get chapters
-    if not(words):
-        continue
-    if words[0] != 'Hoofdstuk':
-        continue
-
-    # get unique words
-    unique_words = list(OrderedDict.fromkeys(unique_words + words))
-
-    '''Remove strings that contain digits [0-9]'''
-    unique_words = [x for x in unique_words if not any(x1.isdigit() for x1 in x)]
-    ''' Remove capitalized words '''
-    unique_words = [x for x in unique_words if not any(x1.isupper() for x1 in x)]
-
-    ''' Make .txt file of new words for each chapter '''
-    ch_number += 1
-    word_list = unique_words[len_list_old:]
-    textfile = open(Vocabulary_dir + "HP_4_Hoofdstuk_{}.txt".format(ch_number), "w")
-    for word in word_list:
-        textfile.write(word + "\n")
-    textfile.close()
-
 # In[6]:
 '''
     Multiple words at a time
@@ -205,6 +155,52 @@ def Download_Word_MP3(word, language):
                     "//div[@class='overlay']")))
 
     element.click()
+
+# In[1]:
+input_path = '/Users/nicholasbrady/Documents/Post-Doc/Dutch/Books/'
+book_ = 'Harry Potter en de Vuurbeker by Rowling, Joanne Kathleen.epub'
+
+chapters = epub2thtml(os.path.join(input_path, book_) )
+
+# In[3]:
+Vocabulary_dir = '/Users/nicholasbrady/Documents/Post-Doc/Dutch/Books/Vocabulary/'
+
+# get the text of each chapter and filter for new unique words
+# new unique words are output to .txt file
+ch_number = 0
+unique_words = [] # if there is an existing vocabulary list, this can be loaded here
+for chapter in chapters:
+    len_list_old = len(unique_words)            # used to keep track of the new unique words
+    chapter_text = chap2text(chapter)
+
+    # remove punctuation
+    chapter_text = re.sub(r'[^\w\s]', '', chapter_text)
+    words = chapter_text.split()
+
+    # don't include table of contents, front / back material
+    # filter just to get chapters
+    if not(words):
+        continue
+    if words[0] != 'Hoofdstuk':
+        continue
+
+    # get unique words
+    unique_words = list(OrderedDict.fromkeys(unique_words + words))
+
+    '''Remove strings that contain digits [0-9]'''
+    unique_words = [x for x in unique_words if not any(x1.isdigit() for x1 in x)]
+    ''' Remove capitalized words '''
+    unique_words = [x for x in unique_words if not any(x1.isupper() for x1 in x)]
+
+    ''' Make .txt file of new words for each chapter '''
+    ch_number += 1
+    word_list = unique_words[len_list_old:]
+    textfile = open(Vocabulary_dir + "HP_4_Hoofdstuk_{}.txt".format(ch_number), "w")
+    for word in word_list:
+        textfile.write(word + "\n")
+    textfile.close()
+
+
 
 # In[11]:
 '''Retrieve English Translations of Dutch Words'''
@@ -440,22 +436,57 @@ for chapter_file in file_list:
     df.to_csv(audio_folder + chapter_name + '/{}_NL_ENG_MP3.csv'.format(chapter_name), index=False, header=False)
 
 # In[5]:
+'''
+    Check that everything has been downloaded
+'''
+file_list = []
+for file in os.listdir(Vocabulary_dir):
+    if file.startswith("HP_4_"):
+        if "_NL_ENG.txt" not in file:
+            file_list.append(file)
+
+file_list.sort(key=natural_keys)
+
+for chapter in file_list:
+
+    file_ = open(Vocabulary_dir + chapter, 'r')
+    file_text = file_.read()
+    word_list = file_text.split('\n')
+    word_list.sort(key=natural_keys)
+    # remove empty words
+    word_list = list(filter(None, word_list))
+
+    filename = os.path.splitext(chapter)[0]
+
+    csv_file = False
+
+
+    mp3_list = os.listdir(audio_folder + filename)
+    # check that chapter .csv file is in audio subfolder
+    if '{}_NL_ENG_MP3.csv'.format(filename) in mp3_list:
+        csv_file = True
+
+    mp3_list = [x for x in mp3_list if '.mp3' in x]
+    mp3_list = [os.path.splitext(x)[0] for x in mp3_list]
+    mp3_list.sort(key=natural_keys)
+
+    if word_list == mp3_list:
+        print('No missing mp3\'s in {}'.format(filename))
+        if csv_file:
+            print(os.getcwd())
+            shutil.make_archive(audio_folder + filename, 'zip', audio_folder + filename)
+    else:
+        print('{} Missing Words:'.format(filename))
+        missing_words = [x for x in word_list if x not in mp3_list]
+        print(missing_words)
+        # re-run the get mp3 function
+
+
+# In[5]:
 # Data frame structure AnkiMobile - comma-separated-values need be saved as .txt file
 # Front[sound:Front.mp3], Back
 # df['Nederlands'] = df['Nederlands'] + df['mp3']
 # df.to_csv(Vocabulary_dir + 'HP_4_Hoofdstuk_1_NL_ENG_MP3.txt', columns=['Nederlands', 'English'], index=False, header=False)
-
-# Data frame structure AnkiApp - need to save as .csv file
-# Front, Back, Tags, Image(front), Image(back), Sound(front), Sound(back)
-df['Tags'] = ''
-df['Image(front)'] = ''
-df['Image(back)'] = ''
-df['mp3(back)'] = ''
-
-cols = ['Nederlands', 'English', 'Tags', 'Image(front)', 'Image(back)', 'mp3', 'mp3(back)']
-df = df[cols]
-
-df.to_csv(Vocabulary_dir + 'HP_4_Hoofdstuk_1_NL_ENG_MP3.csv', index=False, header=False)
 
 # In[6]:
 # Make subfolder for each chapter in audio_folder
@@ -503,3 +534,45 @@ doc = nlp(chapter_text)
 for o, token in enumerate(doc):
     if o < 30:
         print(token.text, token.pos_, token.dep_)
+
+
+# In[10]:
+Vocabulary_dir = '/Users/nicholasbrady/Documents/Post-Doc/Dutch/Books/Vocabulary/'
+
+# get the text of each chapter and filter for new unique words
+# new unique words are output to .txt file
+ch_number = 0
+Vocabulary_list = []                # if there is an existing vocabulary list, this can be loaded here
+for chapter in chapters:
+    chapter_text = chap2text(chapter)
+
+    # remove punctuation
+    chapter_text = re.sub(r'[^\w\s]', '', chapter_text)
+    # get list of individual words
+    words = chapter_text.split()
+
+    # don't include table of contents, front / back material
+    # filter just to get chapters
+    if not(words):
+        continue
+    if words[0] != 'Hoofdstuk':
+        continue
+
+    # get unique words
+    new_words = list(OrderedDict.fromkeys(words))
+    # remove words that are already in our vocabulary list
+    new_words = [x for x in new_words if x not in Vocabulary_list]
+    # Remove strings that contain digits [0-9]
+    new_words = [x for x in new_words if not any(x1.isdigit() for x1 in x)]
+    # Remove capitalized words
+    new_words = [x for x in new_words if not any(x1.isupper() for x1 in x)]
+
+    # add new_words to Vocabulary_list
+    Vocabulary_list += new_words
+
+    # Make .txt file of new words for each chapter
+    ch_number += 1
+    textfile = open(Vocabulary_dir + "HP_4_Hoofdstuk_{}.txt".format(ch_number), "w")
+    for word in new_words:
+        textfile.write(word + "\n")
+    textfile.close()
