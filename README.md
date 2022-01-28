@@ -24,3 +24,12 @@ PseudoCode
 14. Check that all media files are included
 15. Make zip file of each chapter subfolder - includes .mp3's and .csv file (AnkiApp specific)
 16. Use selenium to upload zip folders to AnkiApp website (https://web.ankiapp.com/#/import)
+
+
+From a practical and learning perspective it seems like it might be a more useful exercise to sort the words by their frequency
+1. Load and join the text from all the chapters
+2. Remove punctuation
+3. Split individual words into a list
+4. Use Counter from collections to do a frequency count
+5. Output is a zipped list (word, count)
+6. Remove capitalized or words with digits
