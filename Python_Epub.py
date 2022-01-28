@@ -493,23 +493,8 @@ for chapter in chapters:
 
 # In[13]:
 _ = Counter(full_text).most_common()
-
-print(len(_))
-
-for element in _:
-    (word, count) = element
-
-    capitalized = [l.isupper() for l in word]
-    capitalized = any(capitalized)
-
-    digit = [l.isdigit() for l in word]
-    digit = any(digit)
-
-    if (capitalized or digit):
-        _.remove(element)
-
-print(len(_))
-
+_ = [(word, count) for (word, count) in _ if not(any([l.isupper() for l in word]))] # remove capitalized words
+_ = [(word, count) for (word, count) in _ if not(any([l.isdigit() for l in word]))] # remove words with digits
 
 
 # In[40]:
