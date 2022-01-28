@@ -15,6 +15,7 @@ import pandas as pd
 from tqdm.notebook import trange, tqdm
 
 from collections import OrderedDict
+from collections import Counter
 
 # In[1]:
 # Webpage navigation
@@ -424,7 +425,7 @@ for zip_ in zip_files[12:]:
 
 
 # In[8]:
-# The following sets of code to identify the name of the flash card deck
+# The following sets of code are used to identify the name of the flash card deck
 # AnkiApp just saves the imported deck as CSV {Date}
 
 search_words = ['verslaggeefstertje', 'ik', 'hij', 'met', 'waarschijnlijk']
@@ -454,6 +455,61 @@ df = pd.DataFrame(file_list)
 df['Num_Words'] = len_list
 
 print(df.sort_values(by=['Num_Words']))
+
+
+# In[10]:
+'''
+    Do something slightly different, let's sort the words in terms of how frequently they appear in the text
+    Load and join the text from all the chapters
+    remove punctuation
+    split individual words into a list
+    Use Counter from collections to do a frequency count
+
+    This seems to make a lot of sense from a value perspective
+    If we assume that the words that appear most frequently are the most valuable (or most useful) then it makes sense to prioritize learning those words. In addition, from a learning perspective this also makes sense - we are probably more likely to actually learn the words that appear more often, as opposed to the words that only appear a few times
+'''
+
+input_path = '/Users/nicholasbrady/Documents/Post-Doc/Dutch/Books/'
+book_ = 'Harry Potter en de Vuurbeker by Rowling, Joanne Kathleen.epub'
+
+chapters = epub2thtml(os.path.join(input_path, book_) )
+
+# In[12]:
+# Join all chapter text into one string =)
+full_text = []
+for chapter in chapters:
+    chapter_text = chap2text(chapter)
+
+    chapter_text = re.sub(r'[^\w\s]', '', chapter_text)
+    # get list of individual words
+    words = chapter_text.split()
+
+    if not(words):
+        continue
+    if words[0] != 'Hoofdstuk':
+        continue
+
+    full_text += words
+
+# In[13]:
+_ = Counter(full_text).most_common()
+
+print(len(_))
+
+for element in _:
+    (word, count) = element
+
+    capitalized = [l.isupper() for l in word]
+    capitalized = any(capitalized)
+
+    digit = [l.isdigit() for l in word]
+    digit = any(digit)
+
+    if (capitalized or digit):
+        _.remove(element)
+
+print(len(_))
+
 
 
 # In[40]:
